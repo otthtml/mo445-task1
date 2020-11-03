@@ -34,13 +34,13 @@ def readAndGrey(path_to_image: str):
     return grey_image
 
 def turnIntoYCbCr(image: np.ndarray):
-    #map using hsv
+    # map using hsv
     image = cv2.applyColorMap(image, cv2.COLORMAP_HSV)
 
-    #convert to rgb
+    # convert to rgb
     image = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
 
-    # #convert to YCrCb
+    # convert to YCrCb
     image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
 
     # we return the image where each element is a float instead of an integer
@@ -75,7 +75,21 @@ def createSubImage(image: np.ndarray, mask: np.ndarray):
                 #in case the window exceeds the image's dimensions
                 pass
 
-    return turnIntoYCbCr(best_sub_image)
+    # # to print the first figure referenced in the report
+    # plt.figure()
+    # plt.imshow(best_sub_image)
+    # plt.savefig('./output/patches/1.png', bbox_inches='tight')
+    # plt.close()
+
+    best_sub_image = turnIntoYCbCr(best_sub_image)
+
+    # # to print the second figure referenced in the report
+    # plt.figure()
+    # plt.imshow(best_sub_image)
+    # plt.savefig('./output/patches/2.png', bbox_inches='tight')
+    # plt.close()
+
+    return best_sub_image
 
 def batchNormalization(image: np.ndarray):
     # iterate through the color channels (j = 0,1,2)
@@ -89,6 +103,12 @@ def batchNormalization(image: np.ndarray):
         # now we normalize
         image[:, :, j] = (image[:, :, j] - mean)/deviation
 
+    # # to print the third figure referenced in the report
+    # plt.figure()
+    # plt.imshow(image)
+    # plt.savefig('./output/patches/3.png', bbox_inches='tight')
+    # plt.close()
+
     return image
 
 
@@ -98,21 +118,25 @@ class KernelBank:
         self.kernels = []
         self.results = []
         for i in range(size):
-            # each kernel will have coeffiecients varying from 0-1
+
+            # # .seed makes every kernel be exactly the same (to provide some predictability)
+            # seed = 0 was used to generate figure 4 of the report
+            # np.random.seed(0)
             kernel = np.random.rand( shape, shape, shape )
             self.kernels.append( kernel )
 
     def convolve(self, image) -> list:
         for i in range(len(self.kernels)):
+            # print("KERNEL: " + str(i))
+            # print(self.kernels[i])
+
             # convolve is faster than convolve2d
-            print("KERNEL: " + str(i))
-            print(self.kernels[i])
             result = ndimage.convolve(image, self.kernels[i], mode='constant', cval=0.0)
 
-            # #2d convolution of each channel wielded better results
-            # result0 = signal.convolve2d(sub_image[:,:,0], kernel[:,:,0], mode='same')
-            # result1 = signal.convolve2d(sub_image[:,:,1], kernel[:,:,0], mode='same')
-            # result2 = signal.convolve2d(sub_image[:,:,2], kernel[:,:,0], mode='same')
+            # # norm equal to one wields less variations between kernels (only one channel is considered)
+            # result0 = signal.convolve2d(image[:,:,0], self.kernels[i][:,:,0], mode='same')
+            # result1 = signal.convolve2d(image[:,:,1], self.kernels[i][:,:,0], mode='same')
+            # result2 = signal.convolve2d(image[:,:,2], self.kernels[i][:,:,0], mode='same')
             # result = np.zeros( (WIDTH, HEIGHT, 3) )
             # result[:,:,0] = result0
             # result[:,:,1] = result1
@@ -143,9 +167,6 @@ if __name__ == "__main__":
         mask = readAndGrey(msk)
 
         sub_image = createSubImage(image, mask)
-        if type(sub_image) == str:
-            print('sub_image should be a ndarray. No plate was found!')
-            continue
 
         # now we can batch normalize the image (which is in the YCbCr color space)
         sub_image = batchNormalization(sub_image)
@@ -160,7 +181,7 @@ if __name__ == "__main__":
         for i in range(len(results)):
             plt.figure()
             plt.imshow(results[i])
-            plt.savefig('./output/patches/'+ name + '_' + str(i) +'.png')
+            plt.savefig('./output/patches/'+ name + '_' + str(i) +'.png', bbox_inches='tight')
             plt.close()
 
         # now we convolve with a sobel, for comparison's sake
@@ -170,7 +191,8 @@ if __name__ == "__main__":
             [[1,2,1],[0,0,0],[-1,-2,-1]]
         ])
 
-        result = ndimage.convolve(sub_image, sobelY, mode='constant', cval=0.0)
+        # result = ndimage.convolve(sub_image, sobelY, mode='constant', cval=0.0)
+        result = sub_image
 
         # #2d convolutions of each channel
         # sobelY = np.array([
@@ -187,7 +209,8 @@ if __name__ == "__main__":
         # result[:,:,1] = result1
         # result[:,:,2] = result2
  
+        # this is figure 5 in the report
         plt.figure()
         plt.imshow(result)
-        plt.savefig('./output/patches/'+ name + '_sobel.png')
+        plt.savefig('./output/patches/'+ name + '_sobel.png', bbox_inches='tight')
         plt.close()
